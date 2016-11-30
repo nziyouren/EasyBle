@@ -1,1 +1,1 @@
-include ':sample', ':easyble'
+include ':easyble'
