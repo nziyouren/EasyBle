@@ -15,6 +15,10 @@ public interface BleDeviceListener {
 
     void onInteractError(BleDevice device, Throwable throwable, BleStep step);
 
+    void onScanStart();
+
+    void onScanStop();
+
     void onScanUpdate(BleScanResult scanResult);
 
     void onScanError(Throwable throwable);

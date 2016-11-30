@@ -1,13 +1,18 @@
 package com.happysoftware.easyble;
 
 import android.app.Activity;
+import android.support.v4.app.Fragment;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 
+import com.happysoftware.easyble.exception.EasyBleException;
+import com.happysoftware.easyble.exception.EasyBleScanException;
+import com.happysoftware.easyble.exception.EasyBleUnsupportedDeviceException;
 import com.polidea.rxandroidble.RxBleClient;
 import com.polidea.rxandroidble.exceptions.BleScanException;
 import com.polidea.rxandroidble.internal.RxBleLog;
@@ -17,9 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-import com.happysoftware.easyble.exception.EasyBleException;
-import com.happysoftware.easyble.exception.EasyBleScanException;
-import com.happysoftware.easyble.exception.EasyBleUnsupportedDeviceException;
+import java.util.regex.Pattern;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 
@@ -45,7 +48,9 @@ public class BleCenterManager {
 
     private HashMap<BleDevice,DeviceAdapter> mBleDeviceDeviceAdapterHashMap = new HashMap<>();
 
-    private BleDevice mConnectedDevice = null;
+    private volatile BleDevice mConnectedDevice = null;
+
+    private volatile DeviceAdapter mConnectedDeviceAdapter = null;
 
     private List<DeviceAdapter.Factory> mDeviceAdapterFactories = new ArrayList<>();
 
@@ -65,7 +70,7 @@ public class BleCenterManager {
         mContext = context;
         mRxBleClient = RxBleClient.create(mContext);
         RxBleClient.setLogLevel(RxBleLog.DEBUG);
-        setBleConfig(new BleConfig.BleConfigBuilder().setStartScanAfterDisconncted(false).setStopScanAfterConnected(false).createBleConfig());
+        setBleConfig(new BleConfig.BleConfigBuilder().setStartScanAfterDisconnected(false).setStopScanAfterConnected(false).createBleConfig());
     }
 
     /**
@@ -75,6 +80,7 @@ public class BleCenterManager {
     public void init(Context context,BleConfig bleConfig){
         mContext = context;
         mRxBleClient = RxBleClient.create(mContext);
+        RxBleClient.setLogLevel(RxBleLog.DEBUG);
         setBleConfig(bleConfig);
     }
 
@@ -132,6 +138,7 @@ public class BleCenterManager {
                 if (mBleDeviceListener != null){
                     if (state == BleDeviceState.BLE_DEVICE_STATE_CONNECTED){
                         mConnectedDevice = device;
+                        mConnectedDeviceAdapter = getBoundAdapter(mConnectedDevice);
                         if (mBleConfig.isStopScanAfterConnected()){
                             if (mHandler.hasMessages(CMD_STOP_SCAN)){
                                 mHandler.removeMessages(CMD_STOP_SCAN);
@@ -141,8 +148,9 @@ public class BleCenterManager {
                     }else {
                         if (device.equals(mConnectedDevice)){
                             if (state == BleDeviceState.BLE_DEVICE_STATE_DISCONNECTED){
-                                disconnectDevice(mConnectedDevice);
-                                if (mBleConfig.isStartScanAfterDisconncted()){
+                                // TODO: 2016/10/29 why should I just add disconnectDevice here? I don't remember? may introduce issue?
+//                                disconnectDevice(mConnectedDevice);
+                                if (mBleConfig.isStartScanAfterDisconnected()){
                                     if (mHandler.hasMessages(CMD_START_SCAN)){
                                         mHandler.removeMessages(CMD_START_SCAN);
                                     }
@@ -185,6 +193,20 @@ public class BleCenterManager {
             public void onInteractError(BleDevice device, Throwable throwable, BleStep step) {
                 if (mBleDeviceListener != null){
                     mBleDeviceListener.onInteractError(device,throwable,step);
+                }
+            }
+
+            @Override
+            public void onScanStart() {
+                if (mBleDeviceListener != null){
+                    mBleDeviceListener.onScanStart();
+                }
+            }
+
+            @Override
+            public void onScanStop() {
+                if (mBleDeviceListener != null){
+                    mBleDeviceListener.onScanStop();
                 }
             }
 
@@ -240,6 +262,24 @@ public class BleCenterManager {
 
     }
 
+    /**
+     * Only can use in UI main thread
+     * @param fragment
+     * @throws EasyBleException
+     */
+    public void openBluetooth(Fragment fragment, int requestCode) throws EasyBleException {
+
+        if (!isSupportBLE()){
+            throw new EasyBleException("Not supported Android BLE");
+        }
+
+        if (!isBluetoothOpen()){
+            Intent enableBtIntent = new Intent(
+                    BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            fragment.startActivityForResult(enableBtIntent, requestCode);
+        }
+
+    }
     public boolean isBluetoothOpen(){
         if (mBluetoothAdapter != null){
             return mBluetoothAdapter.isEnabled();
@@ -260,6 +300,13 @@ public class BleCenterManager {
 
     }
 
+    public int getBluetoothAdapterState(){
+        if (mBluetoothAdapter != null){
+            return mBluetoothAdapter.getState();
+        }else {
+            throw new IllegalStateException("Not supported ble");
+        }
+    }
     public void prepareClose(){
 
         stopScan();
@@ -270,9 +317,20 @@ public class BleCenterManager {
 
     public void disconnectCurrentDeviceIfPossible(){
 
+        // TODO: 2016/10/29 can't use mConnectedDevice here
         if (mConnectedDevice != null){
+            Log.e(TAG,"queue :disconnect already connected device...");
             disconnectDevice(mConnectedDevice);
+            return;
         }
+
+        if (mConnectedDeviceAdapter != null){
+            Log.e(TAG,"queue :connected device adapter not close yet, so close device adapter...");
+            mConnectedDeviceAdapter.disconnect();
+            mConnectedDeviceAdapter = null;
+        }
+
+        Log.e(TAG,"queue :no connected device or device adapter need to close, so don't need to disconnect");
 
     }
 
@@ -287,14 +345,19 @@ public class BleCenterManager {
     public void disconnectDevice(BleDevice device){
         DeviceAdapter deviceAdapter = getBoundAdapter(device);
         if (deviceAdapter != null){
+            Log.e(TAG,"queue :disconnect already connected device in adapter...");
             deviceAdapter.disconnect();
+            mConnectedDeviceAdapter = null;
         }else {
-
+            Log.e(TAG,"queue :disconnect no adapter error!...");
         }
     }
 
     public void startScan(){
 
+        if (mScanSubscription != null && !mScanSubscription.isUnsubscribed()){
+            return;
+        }
         mScanSubscription = mRxBleClient.scanBleDevices()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(rxBleScanResult -> {
@@ -305,10 +368,14 @@ public class BleCenterManager {
 
                 },this::onScanFailure);
 
+        if (mBleDeviceListener != null){
+            mBleDeviceListener.onScanStart();
+        }
+
     }
 
 
-    private boolean isScanning() {
+    public boolean isScanning() {
         return mScanSubscription != null && !mScanSubscription.isUnsubscribed();
     }
 
@@ -330,6 +397,11 @@ public class BleCenterManager {
 
         if (isScanning()){
             mScanSubscription.unsubscribe();
+        }
+        mScanSubscription = null;
+
+        if (mBleDeviceListener != null){
+            mBleDeviceListener.onScanStop();
         }
 
     }
@@ -360,26 +432,27 @@ public class BleCenterManager {
             throw new EasyBleException("Device adapter factories empty!");
         }
 
-        DeviceAdapter appropriateAdapter = null;
         for (DeviceAdapter adapter:mDeviceAdapters){
             String[] nameList = adapter.supportedNames();
-            for (String name:nameList){
-                if (bleDevice.getDeviceName().contains(name)){
-                    appropriateAdapter = adapter;
-                    break;
+            if (nameList != null && nameList.length > 0){
+                for (String name:nameList){
+                    if (bleDevice.getDeviceName().equalsIgnoreCase(name)){
+                        return adapter;
+                    }
                 }
             }
-            if (appropriateAdapter != null){
-                break;
+            String[] nameRegExpList = adapter.supportedNameRegExps();
+            if (nameRegExpList != null && nameRegExpList.length >0){
+                for (String nameRegExp:nameRegExpList){
+                    if (Pattern.matches(nameRegExp,bleDevice.getDeviceName())){
+                        return adapter;
+                    }
+                }
             }
+
         }
 
-        if (appropriateAdapter == null){
-            throw new EasyBleUnsupportedDeviceException(bleDevice);
-        }else {
-            return appropriateAdapter;
-        }
-
+        throw new EasyBleUnsupportedDeviceException(bleDevice);
 
     }
 

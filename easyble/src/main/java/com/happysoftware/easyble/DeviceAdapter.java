@@ -24,10 +24,12 @@ public interface DeviceAdapter<T> {
 
     String[] supportedNames();
 
+    String[] supportedNameRegExps();
     void connectThenStart(BleDevice bleDevice);
 
     void disconnect();
 
+    void resetAdapter();
     public void writeCharacteristic(UUID uuid, byte[] data, BleStep step);
 
     public void writeCharacteristic(UUID uuid, byte[] data);
@@ -36,12 +38,7 @@ public interface DeviceAdapter<T> {
 
     public void readCharacteristic(UUID uuid);
 
-    void startAction() throws EasyBleException;
-
-    void stopAction() throws EasyBleException;
-
-    void stopData() throws EasyBleException;
-
+    void executeCmd(int cmd) throws EasyBleException;
 
     abstract class Factory{
 

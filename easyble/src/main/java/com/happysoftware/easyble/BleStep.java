@@ -1,5 +1,7 @@
 package com.happysoftware.easyble;
 
+import java.util.Arrays;
+
 /**
  * Created by zxx on 2016/7/16.
  */
@@ -28,5 +30,14 @@ public class BleStep {
 
     public BleStep(String action) {
         this.action = action;
+    }
+
+    @Override
+    public String toString() {
+        return "BleStep{" +
+                "action='" + action + '\'' +
+                ", rawData=" + Arrays.toString(rawData) +
+                ", data=" + data +
+                '}';
     }
 }

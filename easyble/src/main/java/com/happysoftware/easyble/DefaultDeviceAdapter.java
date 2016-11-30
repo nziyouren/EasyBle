@@ -138,8 +138,14 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
     }
 
     private void initAdapter() {
+        resetAdapter();
         setupConnectionStateChange();
         setupConnection();
+    }
+
+    @Override
+    public void resetAdapter() {
+
     }
 
     private void setupConnection() {
