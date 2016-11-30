@@ -319,18 +319,18 @@ public class BleCenterManager {
 
         // TODO: 2016/10/29 can't use mConnectedDevice here
         if (mConnectedDevice != null){
-            Log.e(TAG,"queue :disconnect already connected device...");
+            Log.e(TAG,"disconnect already connected device...");
             disconnectDevice(mConnectedDevice);
             return;
         }
 
         if (mConnectedDeviceAdapter != null){
-            Log.e(TAG,"queue :connected device adapter not close yet, so close device adapter...");
+            Log.e(TAG,"connected device adapter not close yet, so close device adapter...");
             mConnectedDeviceAdapter.disconnect();
             mConnectedDeviceAdapter = null;
         }
 
-        Log.e(TAG,"queue :no connected device or device adapter need to close, so don't need to disconnect");
+        Log.e(TAG,"no connected device or device adapter need to close, so don't need to disconnect");
 
     }
 
@@ -345,11 +345,11 @@ public class BleCenterManager {
     public void disconnectDevice(BleDevice device){
         DeviceAdapter deviceAdapter = getBoundAdapter(device);
         if (deviceAdapter != null){
-            Log.e(TAG,"queue :disconnect already connected device in adapter...");
+            Log.e(TAG,"disconnect already connected device in adapter...");
             deviceAdapter.disconnect();
             mConnectedDeviceAdapter = null;
         }else {
-            Log.e(TAG,"queue :disconnect no adapter error!...");
+            Log.e(TAG,"disconnect no adapter error...");
         }
     }
 
