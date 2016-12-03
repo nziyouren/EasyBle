@@ -1,8 +1,9 @@
 package com.happysoftware.easyble;
 
+import com.happysoftware.easyble.exception.EasyBleException;
+
 import java.util.UUID;
 
-import com.happysoftware.easyble.exception.EasyBleException;
 import rx.Subscription;
 
 /**
@@ -16,6 +17,7 @@ public interface DeviceAdapter<T> {
 
     void processData(UUID uuid, byte[] data);
 
+    // TODO: 2016/12/3 need to remove parseData
     T parseData(UUID uuid, byte[] data);
 
     UUID[] notificationUUIDs();
@@ -30,13 +32,14 @@ public interface DeviceAdapter<T> {
     void disconnect();
 
     void resetAdapter();
-    public void writeCharacteristic(UUID uuid, byte[] data, BleStep step);
 
-    public void writeCharacteristic(UUID uuid, byte[] data);
+    void writeCharacteristic(UUID uuid, byte[] data, BleStep step);
 
-    public void readCharacteristic(UUID uuid, BleStep step);
+    void writeCharacteristic(UUID uuid, byte[] data);
 
-    public void readCharacteristic(UUID uuid);
+    void readCharacteristic(UUID uuid, BleStep step);
+
+    void readCharacteristic(UUID uuid);
 
     void executeCmd(int cmd) throws EasyBleException;
 
