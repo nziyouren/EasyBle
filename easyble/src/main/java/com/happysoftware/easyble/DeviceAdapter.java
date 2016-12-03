@@ -3,6 +3,7 @@ package com.happysoftware.easyble;
 import com.happysoftware.easyble.exception.EasyBleException;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import rx.Subscription;
 
@@ -27,6 +28,7 @@ public interface DeviceAdapter<T> {
     String[] supportedNames();
 
     String[] supportedNameRegExps();
+
     void connectThenStart(BleDevice bleDevice);
 
     void disconnect();
@@ -35,7 +37,15 @@ public interface DeviceAdapter<T> {
 
     void writeCharacteristic(UUID uuid, byte[] data, BleStep step);
 
+    void writeCharacteristic(UUID uuid, byte[] longData, int maxLengthPerPacket, BleStep step);
+
+    void writeCharacteristic(UUID uuid, byte[] longData, int maxLengthPerPacket, BleStep step, int delay, TimeUnit timeUnit);
+
     void writeCharacteristic(UUID uuid, byte[] data);
+
+    void writeCharacteristic(UUID uuid, byte[] longData, int maxLengthPerPacket);
+
+    void writeCharacteristic(UUID uuid, byte[] longData, int maxLengthPerPacket, int delay, TimeUnit timeUnit);
 
     void readCharacteristic(UUID uuid, BleStep step);
 

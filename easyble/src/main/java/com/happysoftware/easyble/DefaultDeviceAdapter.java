@@ -1,14 +1,19 @@
 package com.happysoftware.easyble;
 
+import com.happysoftware.easyble.utils.BleUtil;
 import com.polidea.rxandroidble.RxBleConnection;
 import com.polidea.rxandroidble.RxBleDevice;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
-import com.happysoftware.easyble.utils.BleUtil;
 import rx.Observable;
+import rx.Observer;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.observables.SyncOnSubscribe;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by zxx on 2016/7/16.
@@ -191,6 +196,133 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnNext(bytes -> notifyInteractUpdate(mBleDevice,new BleStep("Begin write data to UUID :"+uuid.toString())))
                 .subscribe(bytes -> notifyInteractUpdate(mBleDevice,new BleStep(String.format("Step write data to UUID: %s complete",uuid.toString())))
+                        ,throwable -> notifyInteractError(mBleDevice,throwable,new BleStep(String.format("Step write data to UUID: %s error",uuid.toString()))));
+
+    }
+
+    @Override
+    public void writeCharacteristic(UUID uuid, byte[] longData, int maxLengthPerPacket, BleStep step) {
+        Observable.create(new SyncOnSubscribe<ByteBuffer, byte[]>() {
+
+            @Override
+            protected ByteBuffer generateState() {
+                return ByteBuffer.wrap(longData);
+            }
+
+            @Override
+            protected ByteBuffer next(ByteBuffer state, Observer<? super byte[]> observer) {
+                final int chunkLength = Math.min(state.remaining(), maxLengthPerPacket);
+                if (chunkLength > 0) {
+                    final byte[] bytesChunk = new byte[chunkLength];
+                    state.get(bytesChunk);
+                    observer.onNext(bytesChunk);
+                }
+                if (chunkLength == 0 || state.remaining() == 0) {
+                    observer.onCompleted();
+                }
+                return state;
+            }
+        })
+                .doOnSubscribe(() -> notifyInteractUpdate(mBleDevice, new BleStep("Begin step "+step.action,step.rawData,step.data)))
+                .subscribeOn(Schedulers.computation())
+                .observeOn(Schedulers.computation())
+                .flatMap(bytes -> mRxBleConnection.writeCharacteristic(uuid, bytes), 1)
+                .doOnNext(bytes -> notifyInteractUpdate(mBleDevice, new BleStep("Begin write data piece to UUID :" + uuid.toString())))
+                .subscribe(bytes -> notifyInteractUpdate(mBleDevice, new BleStep("Step "+step.action+" complete",step.rawData,step.data))
+                        , throwable -> notifyInteractError(mBleDevice, throwable, new BleStep(String.format("Step write data to UUID: %s error", uuid.toString()))));
+
+    }
+
+    @Override
+    public void writeCharacteristic(UUID uuid, byte[] longData, int maxLengthPerPacket, BleStep step, int delay, TimeUnit timeUnit) {
+        Observable.create(new SyncOnSubscribe<ByteBuffer, byte[]>() {
+
+            @Override
+            protected ByteBuffer generateState() {
+                return ByteBuffer.wrap(longData);
+            }
+
+            @Override
+            protected ByteBuffer next(ByteBuffer state, Observer<? super byte[]> observer) {
+                final int chunkLength = Math.min(state.remaining(), maxLengthPerPacket);
+                if (chunkLength > 0) {
+                    final byte[] bytesChunk = new byte[chunkLength];
+                    state.get(bytesChunk);
+                    observer.onNext(bytesChunk);
+                }
+                if (chunkLength == 0 || state.remaining() == 0) {
+                    observer.onCompleted();
+                }
+                return state;
+            }
+        })
+                .doOnSubscribe(() -> notifyInteractUpdate(mBleDevice, new BleStep("Begin step "+step.action,step.rawData,step.data)))
+                .subscribeOn(Schedulers.computation())
+                .observeOn(Schedulers.computation())
+                .flatMap(bytes -> mRxBleConnection.writeCharacteristic(uuid, bytes).delay(delay,timeUnit), 1)
+                .doOnNext(bytes -> notifyInteractUpdate(mBleDevice, new BleStep("Begin write data piece to UUID :" + uuid.toString())))
+                .subscribe(bytes -> notifyInteractUpdate(mBleDevice, new BleStep("Step "+step.action+" complete",step.rawData,step.data))
+                        , throwable -> notifyInteractError(mBleDevice, throwable, new BleStep(String.format("Step write data to UUID: %s error", uuid.toString()))));
+    }
+
+    @Override
+    public void writeCharacteristic(UUID uuid, byte[] longData, int maxLengthPerPacket) {
+        Observable.create(new SyncOnSubscribe<ByteBuffer, byte[]>() {
+
+            @Override
+            protected ByteBuffer generateState() {
+                return ByteBuffer.wrap(longData);
+            }
+
+            @Override
+            protected ByteBuffer next(ByteBuffer state, Observer<? super byte[]> observer) {
+                final int chunkLength = Math.min(state.remaining(), 20);
+                if (chunkLength > 0) {
+                    final byte[] bytesChunk = new byte[chunkLength];
+                    state.get(bytesChunk);
+                    observer.onNext(bytesChunk);
+                }
+                if (chunkLength == 0 || state.remaining() == 0) {
+                    observer.onCompleted();
+                }
+                return state;
+            }
+        })
+                .doOnSubscribe(() -> notifyInteractUpdate(mBleDevice,new BleStep("Begin write long data to UUID :"+uuid.toString())))
+                .flatMap(bytes ->  mRxBleConnection.writeCharacteristic(uuid,bytes),1)
+                .doOnNext(bytes -> notifyInteractUpdate(mBleDevice,new BleStep("Begin write data piece to UUID :"+uuid.toString())))
+                .subscribe(bytes -> notifyInteractUpdate(mBleDevice,new BleStep(String.format("Step write data piece to UUID: %s complete",uuid.toString())))
+                        ,throwable -> notifyInteractError(mBleDevice,throwable,new BleStep(String.format("Step write data to UUID: %s error",uuid.toString()))));
+
+    }
+
+    @Override
+    public void writeCharacteristic(UUID uuid, byte[] longData, int maxLengthPerPacket, int delay, TimeUnit timeUnit) {
+        Observable.create(new SyncOnSubscribe<ByteBuffer, byte[]>() {
+
+            @Override
+            protected ByteBuffer generateState() {
+                return ByteBuffer.wrap(longData);
+            }
+
+            @Override
+            protected ByteBuffer next(ByteBuffer state, Observer<? super byte[]> observer) {
+                final int chunkLength = Math.min(state.remaining(), 20);
+                if (chunkLength > 0) {
+                    final byte[] bytesChunk = new byte[chunkLength];
+                    state.get(bytesChunk);
+                    observer.onNext(bytesChunk);
+                }
+                if (chunkLength == 0 || state.remaining() == 0) {
+                    observer.onCompleted();
+                }
+                return state;
+            }
+        })
+                .doOnSubscribe(() -> notifyInteractUpdate(mBleDevice,new BleStep("Begin write long data to UUID :"+uuid.toString())))
+                .flatMap(bytes ->  mRxBleConnection.writeCharacteristic(uuid,bytes).delay(delay,timeUnit),1)
+                .doOnNext(bytes -> notifyInteractUpdate(mBleDevice,new BleStep("Begin write data piece to UUID :"+uuid.toString())))
+                .subscribe(bytes -> notifyInteractUpdate(mBleDevice,new BleStep(String.format("Step write data piece to UUID: %s complete",uuid.toString())))
                         ,throwable -> notifyInteractError(mBleDevice,throwable,new BleStep(String.format("Step write data to UUID: %s error",uuid.toString()))));
 
     }
