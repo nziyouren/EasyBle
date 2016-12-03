@@ -155,10 +155,6 @@ public class BleCenterManager {
                                         mHandler.removeMessages(CMD_START_SCAN);
                                     }
                                     mHandler.sendEmptyMessageDelayed(CMD_START_SCAN,500);
-
-                                    //special for white huawei, haven't found a better solution yet
-//                                    mHandler.sendEmptyMessageDelayed(CMD_STOP_SCAN,4000);
-//                                    mHandler.sendEmptyMessageDelayed(CMD_START_SCAN,8000);
                                 }
                             }
                             mConnectedDevice = null;
