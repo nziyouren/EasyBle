@@ -276,7 +276,7 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
 
             @Override
             protected ByteBuffer next(ByteBuffer state, Observer<? super byte[]> observer) {
-                final int chunkLength = Math.min(state.remaining(), 20);
+                final int chunkLength = Math.min(state.remaining(), maxLengthPerPacket);
                 if (chunkLength > 0) {
                     final byte[] bytesChunk = new byte[chunkLength];
                     state.get(bytesChunk);
@@ -307,7 +307,7 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
 
             @Override
             protected ByteBuffer next(ByteBuffer state, Observer<? super byte[]> observer) {
-                final int chunkLength = Math.min(state.remaining(), 20);
+                final int chunkLength = Math.min(state.remaining(), maxLengthPerPacket);
                 if (chunkLength > 0) {
                     final byte[] bytesChunk = new byte[chunkLength];
                     state.get(bytesChunk);
