@@ -5,7 +5,7 @@ apply plugin: 'com.jfrog.bintray'
 def siteUrl = 'https://github.com/nziyouren/EasyBle'
 def gitUrl = 'https://github.com/nziyouren/EasyBle.git'
 group = "com.happysoftware.easyble" // Maven Group ID for the artifact
-version = "0.3.2"
+version = "0.3.3"
 
 android {
     compileSdkVersion 23
