@@ -147,17 +147,17 @@ public class BleCenterManager {
                         }
                     }else {
                         if (device.equals(mConnectedDevice)){
-                            if (state == BleDeviceState.BLE_DEVICE_STATE_DISCONNECTED){
-                                // TODO: 2016/10/29 why should I just add disconnectDevice here? I don't remember? may introduce issue?
-//                                disconnectDevice(mConnectedDevice);
-                                if (mBleConfig.isStartScanAfterDisconnected()){
-                                    if (mHandler.hasMessages(CMD_START_SCAN)){
-                                        mHandler.removeMessages(CMD_START_SCAN);
-                                    }
-                                    mHandler.sendEmptyMessageDelayed(CMD_START_SCAN,500);
-                                }
-                            }
                             mConnectedDevice = null;
+                        }
+                        if (state == BleDeviceState.BLE_DEVICE_STATE_DISCONNECTED){
+                            // TODO: 2016/10/29 why should I just add disconnectDevice here? I don't remember? may introduce issue?
+                            // disconnectDevice(mConnectedDevice);
+                            if (mBleConfig.isStartScanAfterDisconnected()){
+                                if (mHandler.hasMessages(CMD_START_SCAN)){
+                                    mHandler.removeMessages(CMD_START_SCAN);
+                                }
+                                mHandler.sendEmptyMessageDelayed(CMD_START_SCAN,500);
+                            }
                         }
                     }
                     mBleDeviceListener.onDeviceStateChange(device,state);
@@ -317,6 +317,8 @@ public class BleCenterManager {
         if (mConnectedDevice != null){
             Log.e(TAG,"disconnect already connected device...");
             disconnectDevice(mConnectedDevice);
+            mConnectedDevice = null;
+            mConnectedDeviceAdapter = null;
             return;
         }
 
@@ -343,7 +345,10 @@ public class BleCenterManager {
         if (deviceAdapter != null){
             Log.e(TAG,"disconnect already connected device in adapter...");
             deviceAdapter.disconnect();
-            mConnectedDeviceAdapter = null;
+            if (device.equals(mConnectedDevice)){
+                mConnectedDevice = null;
+                mConnectedDeviceAdapter = null;
+            }
         }else {
             Log.e(TAG,"disconnect no adapter error...");
         }

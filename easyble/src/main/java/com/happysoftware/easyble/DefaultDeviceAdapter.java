@@ -109,17 +109,16 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
         return subscription;
     }
 
+    private volatile boolean mInitiativeDisconnect = false;
     @Override
     public void disconnect() {
+        mInitiativeDisconnect = true;
         // TODO: 2016/8/2 should check whether subscription has been unsubscribed?
         if (mNotificationSubscription != null && !mNotificationSubscription.isUnsubscribed()){
             mNotificationSubscription.unsubscribe();
         }
         if (mIndicatorSubscription != null && !mIndicatorSubscription.isUnsubscribed()){
             mIndicatorSubscription.unsubscribe();
-        }
-        if (mConnectionStateSubscription != null && !mConnectionStateSubscription.isUnsubscribed()){
-            mConnectionStateSubscription.unsubscribe();
         }
     }
 
@@ -173,7 +172,14 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
 
         mConnectionStateSubscription = mInternalRxBleDevice.observeConnectionStateChanges()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(rxBleConnectionState -> notifyDeviceStateChange(mBleDevice, BleUtil.convertInternalRXState(rxBleConnectionState)),
+                .subscribe(rxBleConnectionState ->
+                {
+                    notifyDeviceStateChange(mBleDevice, BleUtil.convertInternalRXState(rxBleConnectionState));
+                    if (mInitiativeDisconnect){
+                        mConnectionStateSubscription.unsubscribe();
+                        mInitiativeDisconnect = false;
+                    }
+                },
                         throwable -> notifyInteractError(mBleDevice, throwable, new BleStep("Setup connection change error")));
 
     }
