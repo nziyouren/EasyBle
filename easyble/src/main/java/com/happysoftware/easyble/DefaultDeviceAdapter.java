@@ -34,7 +34,7 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
 
     protected RxBleConnection mRxBleConnection;
 
-    private BehaviorSubject<RxBleConnection> mConnectionBehaviorSubject = BehaviorSubject.create();
+    private BehaviorSubject<RxBleConnection> mConnectionBehaviorSubject = null;
     @Override
     public Subscription enableNotification() {
 
@@ -149,6 +149,7 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
     }
 
     private void initAdapter() {
+        mConnectionBehaviorSubject = BehaviorSubject.create();
         resetAdapter();
         setupConnectionStateChange();
         setupConnection();
