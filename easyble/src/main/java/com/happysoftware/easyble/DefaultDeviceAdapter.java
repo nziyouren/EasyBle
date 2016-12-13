@@ -14,6 +14,7 @@ import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.observables.SyncOnSubscribe;
 import rx.schedulers.Schedulers;
+import rx.subjects.BehaviorSubject;
 
 /**
  * Created by zxx on 2016/7/16.
@@ -26,13 +27,14 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
     protected BleDevice mBleDevice;
     private RxBleDevice mInternalRxBleDevice;
 
+    private Subscription mConnectionSubscription;
     private Subscription mNotificationSubscription;
     private Subscription mIndicatorSubscription;
     private Subscription mConnectionStateSubscription;
 
-    protected Observable<RxBleConnection> mRxBleConnectionObservable;
     protected RxBleConnection mRxBleConnection;
 
+    private BehaviorSubject<RxBleConnection> mConnectionBehaviorSubject = BehaviorSubject.create();
     @Override
     public Subscription enableNotification() {
 
@@ -44,7 +46,7 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
 
         Observable<PairData>[] observables = new Observable[notificationUUIDs.length];
 
-        Subscription subscription = mRxBleConnectionObservable.flatMap(rxBleConnection -> {
+        Subscription subscription = mConnectionBehaviorSubject.flatMap(rxBleConnection -> {
 
 
             for (int i = 0; i < notificationUUIDs.length; i++) {
@@ -82,7 +84,7 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
 
         Observable<PairData>[] observables = new Observable[indicatorUUIDs.length];
 
-        Subscription subscription = mRxBleConnectionObservable.flatMap(rxBleConnection -> {
+        Subscription subscription = mConnectionBehaviorSubject.flatMap(rxBleConnection -> {
 
 
             for (int i = 0; i < indicatorUUIDs.length; i++) {
@@ -112,8 +114,13 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
     private volatile boolean mInitiativeDisconnect = false;
     @Override
     public void disconnect() {
+
         mInitiativeDisconnect = true;
+
         // TODO: 2016/8/2 should check whether subscription has been unsubscribed?
+        if (mConnectionSubscription != null && !mConnectionSubscription.isUnsubscribed()){
+            mConnectionSubscription.unsubscribe();
+        }
         if (mNotificationSubscription != null && !mNotificationSubscription.isUnsubscribed()){
             mNotificationSubscription.unsubscribe();
         }
@@ -155,8 +162,9 @@ public abstract class DefaultDeviceAdapter<T> implements DeviceAdapter<T>{
     private void setupConnection() {
 
         boolean enableAutoConnect = mBleCenterManager.getBleConfig().isEnableAutoConnect();
-        mRxBleConnectionObservable = mInternalRxBleDevice.establishConnection(mBleCenterManager.getContext(),enableAutoConnect)
-                .doOnNext(rxBleConnection -> mRxBleConnection = rxBleConnection);
+        mConnectionSubscription = mInternalRxBleDevice.establishConnection(mBleCenterManager.getContext(),enableAutoConnect)
+                .doOnNext(rxBleConnection -> mRxBleConnection = rxBleConnection)
+                .subscribe(mConnectionBehaviorSubject);
 
     }
 
