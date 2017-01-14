@@ -1,27 +1,24 @@
 package com.happysoftware.easyble;
 
 import android.app.Activity;
-import android.support.v4.app.Fragment;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.Fragment;
 import android.util.Log;
-
 import com.happysoftware.easyble.exception.EasyBleException;
 import com.happysoftware.easyble.exception.EasyBleScanException;
 import com.happysoftware.easyble.exception.EasyBleUnsupportedDeviceException;
 import com.polidea.rxandroidble.RxBleClient;
 import com.polidea.rxandroidble.exceptions.BleScanException;
 import com.polidea.rxandroidble.internal.RxBleLog;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-
 import java.util.regex.Pattern;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
@@ -135,32 +132,32 @@ public class BleCenterManager {
         mInternalBleDeviceListener = new BleDeviceListener() {
             @Override
             public void onDeviceStateChange(BleDevice device, BleDeviceState state) {
-                if (mBleDeviceListener != null){
-                    if (state == BleDeviceState.BLE_DEVICE_STATE_CONNECTED){
-                        mConnectedDevice = device;
-                        mConnectedDeviceAdapter = getBoundAdapter(mConnectedDevice);
-                        if (mBleConfig.isStopScanAfterConnected()){
-                            if (mHandler.hasMessages(CMD_STOP_SCAN)){
-                                mHandler.removeMessages(CMD_STOP_SCAN);
-                            }
-                            mHandler.sendEmptyMessageDelayed(CMD_STOP_SCAN,500);
+                if (state == BleDeviceState.BLE_DEVICE_STATE_CONNECTED) {
+                    mConnectedDevice = device;
+                    mConnectedDeviceAdapter = getBoundAdapter(mConnectedDevice);
+                    if (mBleConfig.isStopScanAfterConnected()) {
+                        if (mHandler.hasMessages(CMD_STOP_SCAN)) {
+                            mHandler.removeMessages(CMD_STOP_SCAN);
                         }
-                    }else {
-                        if (device.equals(mConnectedDevice)){
-                            mConnectedDevice = null;
-                        }
-                        if (state == BleDeviceState.BLE_DEVICE_STATE_DISCONNECTED){
-                            // TODO: 2016/10/29 why should I just add disconnectDevice here? I don't remember? may introduce issue?
-                            // disconnectDevice(mConnectedDevice);
-                            if (mBleConfig.isStartScanAfterDisconnected()){
-                                if (mHandler.hasMessages(CMD_START_SCAN)){
-                                    mHandler.removeMessages(CMD_START_SCAN);
-                                }
-                                mHandler.sendEmptyMessageDelayed(CMD_START_SCAN,500);
+                        mHandler.sendEmptyMessageDelayed(CMD_STOP_SCAN, 500);
+                    }
+                } else {
+                    if (device.equals(mConnectedDevice)) {
+                        mConnectedDevice = null;
+                    }
+                    if (state == BleDeviceState.BLE_DEVICE_STATE_DISCONNECTED) {
+                        // TODO: 2016/10/29 why should I just add disconnectDevice here? I don't remember? may introduce issue?
+                        // disconnectDevice(mConnectedDevice);
+                        if (mBleConfig.isStartScanAfterDisconnected()) {
+                            if (mHandler.hasMessages(CMD_START_SCAN)) {
+                                mHandler.removeMessages(CMD_START_SCAN);
                             }
+                            mHandler.sendEmptyMessageDelayed(CMD_START_SCAN, 500);
                         }
                     }
-                    mBleDeviceListener.onDeviceStateChange(device,state);
+                }
+                if (mBleDeviceListener != null) {
+                    mBleDeviceListener.onDeviceStateChange(device, state);
                 }
             }
 
