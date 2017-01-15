@@ -39,7 +39,7 @@ public class BleCenterManager {
 
     private BleDeviceListener mInternalBleDeviceListener = null;
 
-    private BleDeviceListener mBleDeviceListener;
+    private List<BleDeviceListener> mBleDeviceListenerList;
 
     private BluetoothAdapter mBluetoothAdapter;
 
@@ -129,6 +129,8 @@ public class BleCenterManager {
 
     private void initInternalListener() {
 
+        mBleDeviceListenerList = new ArrayList<>();
+
         mInternalBleDeviceListener = new BleDeviceListener() {
             @Override
             public void onDeviceStateChange(BleDevice device, BleDeviceState state) {
@@ -156,66 +158,55 @@ public class BleCenterManager {
                         }
                     }
                 }
-                if (mBleDeviceListener != null) {
-                    mBleDeviceListener.onDeviceStateChange(device, state);
-                }
+                notifyDeviceStateChange(device, state);
             }
+
 
             @Override
             public void onDataComing(BleDevice device, BleDataType type, Object data) {
-                if (mBleDeviceListener != null){
-                    mBleDeviceListener.onDataComing(device,type,data);
-                }
+                notifyDataComing(device, type, data);
             }
+
+
 
             @Override
             public void onInteractComplete(BleDevice device, Object finalResult) {
-                if (mBleDeviceListener != null){
-                    mBleDeviceListener.onInteractComplete(device,finalResult);
-                }
+                notifyInteractComplete(device, finalResult);
             }
+
+
 
             @Override
             public void onInteractUpdate(BleDevice device, BleStep step) {
-                if (mBleDeviceListener != null){
-                    mBleDeviceListener.onInteractUpdate(device,step);
-                }
+                notifyInteractUpdate(device, step);
             }
+
 
             @Override
             public void onInteractError(BleDevice device, Throwable throwable, BleStep step) {
-                if (mBleDeviceListener != null){
-                    mBleDeviceListener.onInteractError(device,throwable,step);
-                }
+                notifyInteractError(device, throwable, step);
             }
 
             @Override
             public void onScanStart() {
-                if (mBleDeviceListener != null){
-                    mBleDeviceListener.onScanStart();
-                }
+                notifyScanStart();
             }
 
             @Override
             public void onScanStop() {
-                if (mBleDeviceListener != null){
-                    mBleDeviceListener.onScanStop();
-                }
+                notifyScanStop();
             }
 
             @Override
             public void onScanUpdate(BleScanResult scanResult) {
-                if (mBleDeviceListener != null){
-                    mBleDeviceListener.onScanUpdate(scanResult);
-                }
+                notifyScanUpdate(scanResult);
             }
 
             @Override
             public void onScanError(Throwable throwable) {
-                if (mBleDeviceListener != null){
-                    mBleDeviceListener.onScanError(throwable);
-                }
+                notifyScanError(throwable);
             }
+
         };
     }
 
@@ -223,12 +214,20 @@ public class BleCenterManager {
         return mInternalBleDeviceListener;
     }
 
-    public BleDeviceListener getBleDeviceListener() {
-        return mBleDeviceListener;
+    public void addBleDeviceListener(BleDeviceListener bleDeviceListener) {
+        if (!mBleDeviceListenerList.contains(bleDeviceListener)){
+            mBleDeviceListenerList.add(bleDeviceListener);
+        }
     }
 
-    public void setBleDeviceListener(BleDeviceListener bleDeviceListener) {
-        mBleDeviceListener = bleDeviceListener;
+    public boolean removeBleDeviceListener(BleDeviceListener bleDeviceListener) {
+        if (mBleDeviceListenerList.isEmpty()){
+            return false;
+        }else if (mBleDeviceListenerList.contains(bleDeviceListener)){
+            return mBleDeviceListenerList.remove(bleDeviceListener);
+        }else {
+            return false;
+        }
     }
 
     public boolean isSupportBLE() {
@@ -360,15 +359,11 @@ public class BleCenterManager {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(rxBleScanResult -> {
 
-                    if (mBleDeviceListener != null){
-                        mBleDeviceListener.onScanUpdate(new BleScanResult(rxBleScanResult));
-                    }
+                    notifyScanUpdate(new BleScanResult(rxBleScanResult));
 
                 },this::onScanFailure);
 
-        if (mBleDeviceListener != null){
-            mBleDeviceListener.onScanStart();
-        }
+        notifyScanStart();
 
     }
 
@@ -379,17 +374,20 @@ public class BleCenterManager {
 
 
     private void onScanFailure(Throwable throwable) {
-
-        if (mBleDeviceListener != null){
-            if (throwable instanceof BleScanException){
-                mBleDeviceListener.onScanError(new EasyBleScanException((BleScanException) throwable));
-            }else {
-                mBleDeviceListener.onScanError(throwable);
-            }
-        }
-
+        notifyScanFailure(throwable);
     }
 
+    private void notifyScanFailure(Throwable throwable) {
+        for (BleDeviceListener deviceListener: mBleDeviceListenerList){
+            if (deviceListener != null){
+                if (throwable instanceof BleScanException){
+                    deviceListener.onScanError(new EasyBleScanException((BleScanException) throwable));
+                }else {
+                    deviceListener.onScanError(throwable);
+                }
+            }
+        }
+    }
 
     public void stopScan(){
 
@@ -397,11 +395,7 @@ public class BleCenterManager {
             mScanSubscription.unsubscribe();
         }
         mScanSubscription = null;
-
-        if (mBleDeviceListener != null){
-            mBleDeviceListener.onScanStop();
-        }
-
+        notifyScanStop();
     }
 
     public void connectThenStart(BleDevice device) throws EasyBleException {
@@ -478,5 +472,59 @@ public class BleCenterManager {
 
     public List<DeviceAdapter.Factory> getDeviceAdapterFactories() {
         return Collections.unmodifiableList(mDeviceAdapterFactories);
+    }
+
+    private void notifyDeviceStateChange(BleDevice device, BleDeviceState state) {
+        for (BleDeviceListener deviceListener: mBleDeviceListenerList){
+            deviceListener.onDeviceStateChange(device, state);
+        }
+    }
+
+    private void notifyDataComing(BleDevice device, BleDataType type, Object data) {
+        for (BleDeviceListener deviceListener: mBleDeviceListenerList){
+            deviceListener.onDataComing(device,type,data);
+        }
+    }
+
+    private void notifyInteractComplete(BleDevice device, Object finalResult) {
+        for (BleDeviceListener deviceListener: mBleDeviceListenerList){
+            deviceListener.onInteractComplete(device,finalResult);
+        }
+    }
+
+    private void notifyInteractUpdate(BleDevice device, BleStep step) {
+        for (BleDeviceListener deviceListener: mBleDeviceListenerList){
+            deviceListener.onInteractUpdate(device,step);
+        }
+    }
+
+    private void notifyInteractError(BleDevice device, Throwable throwable, BleStep step) {
+        for (BleDeviceListener deviceListener: mBleDeviceListenerList){
+            deviceListener.onInteractError(device,throwable,step);
+        }
+    }
+
+    private void notifyScanStart() {
+        for (BleDeviceListener deviceListener: mBleDeviceListenerList){
+            deviceListener.onScanStart();
+        }
+    }
+
+    private void notifyScanStop() {
+        for (BleDeviceListener deviceListener: mBleDeviceListenerList){
+            deviceListener.onScanStop();
+        }
+    }
+
+    private void notifyScanUpdate(BleScanResult scanResult) {
+        for (BleDeviceListener deviceListener: mBleDeviceListenerList){
+            deviceListener.onScanUpdate(scanResult);
+        }
+    }
+
+    private void notifyScanError(Throwable throwable) {
+        for (BleDeviceListener deviceListener: mBleDeviceListenerList){
+            deviceListener.onScanError(throwable);
+        }
     }
 }
