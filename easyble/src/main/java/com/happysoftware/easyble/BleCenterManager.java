@@ -280,15 +280,13 @@ public class BleCenterManager {
     }
 
 
-    public void closeBluetooth() throws EasyBleException {
+    public boolean closeBluetooth() throws EasyBleException {
 
         if (!isSupportBLE()){
             throw new EasyBleException("Not supported Android BLE");
         }
 
-        if (isBluetoothOpen()){
-            mBluetoothAdapter.disable();
-        }
+        return mBluetoothAdapter.disable();
 
     }
 
