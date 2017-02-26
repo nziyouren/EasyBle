@@ -1,5 +1,6 @@
 # EasyBle
 Multi device process Ble library for Android
+中文文档 [README_CN.md](https://github.com/nziyouren/EasyBle/blob/master/README_CN.md)
 
 
 # Why I develop this library?
@@ -18,7 +19,14 @@ So I develop this library to solve above issues.
 * Simple API. App just need to register one listener to listen all bluetooth events
 * Based on Powerful [RXAndroidBle](https://github.com/Polidea/RxAndroidBle) (https://github.com/Polidea/RxAndroidBle). Improve stablities a lot, easy thread switch, clean code.
 
+## Architecture
 
+Architecture of this library
+
+<br /> 
+<img src="http://oiburv3oy.bkt.clouddn.com/framework.png" alt="Drawing"/>
+
+<br /> 
 
 #Download
 ##Gradle
@@ -38,20 +46,22 @@ So I develop this library to solve above issues.
 	
 ## Open Bluetooth
 	try {
-    bleCenterManager.openBluetooth(this, requestCode);
+        bleCenterManager.openBluetooth(this, requestCode);
 	} catch (EasyBleException e) {
-    e.printStackTrace();
+        e.printStackTrace();
 	}
 
 ## Disconnect device and close Bluetooth
+```
 	if (bleCenterManager.isBluetoothOpen()){
     try {
-        bleCenterManager.prepareClose();//disconnect device
- 		 bleCenterManager.closeBluetooth();//close Bluetooth
+         bleCenterManager.prepareClose();//disconnect device
+ 		   bleCenterManager.closeBluetooth();//close Bluetooth
  		 } catch (EasyBleException e) {
         e.printStackTrace();
  		}
 	}
+```
 
 
 ## Scan Device
@@ -142,8 +152,105 @@ public void onScanStop(){
 	public void readCharacteristic(UUID uuid);
 	
 	
-## More detailed sample
-	Coming soon...
+## How to integrate new device
+#### You just need 3 steps to integrate new device:
+
+1. Create custom AdapterFactory and implement buildDeviceAdapter method
+
+	```	
+	public class BloodPressureFactory extends DeviceAdapter.Factory{
+
+	 //static create Factory method
+    public static BloodPressureFactory create(BleCenterManager bleCenterManager){				
+	        return new BloodPressureFactory(bleCenterManager);
+	 }
+	
+    public BloodPressureFactory(BleCenterManager bleCenterManager) {
+	        super(bleCenterManager);
+    }
+
+	 //Create deviceAdapter
+    @Override
+    public DeviceAdapter<T> buildDeviceAdapter() {
+        return new BloodPressureDeviceAdapter(mBleCenterManager);
+	}
+	}
+	``` 
+2.  Create your custom deviceAdapter inherited from DeviceAdatper and implements some methods
+    
+    ##### public String[] supportedNames() 
+
+	EasyBle find appropriate deviceAdapter to process your device by name. So your deviceAdapter need to tell EasyBle framework the device name you can process. If your deviceAdapter supports more than one device, return all names. If you'r not sure about the name, you can use supportedNameRegExps() instead. supportedNameRegExps() support regular expressions.
+	
+	```
+	@Override
+	public String[] supportedNames() {
+	    return new String[]{"Model-name-old","Model-name-new"};//return device advertised names
+	}
+	```
+
+    ##### public UUID[] notificationUUIDs()
+	
+	If you want to set UUID notifications, just return UUID[]
+
+	```
+	@Override
+	public UUID[] notificationUUIDs() {
+    	return new UUID[]{UUID.fromString("UUID-1"),UUID.fromString("UUID-2")};// return UUIDs which need to enable notification
+	}
+	```
+
+    ##### public UUID[] indicatorUUIDs()
+	
+	If you want to set UUID indications, just return UUID[]
+	
+	```
+	@Override
+	public UUID[] indicatorUUIDs() {
+    return new UUID[]{UUID.fromString("UUID-1"),UUID.fromString("UUID-2")};//return UUIDs which need to enable indication
+	}
+	```
+    ##### public void processData(UUID uuid, byte[] data) 
+	
+	Put your peripherals and device protocol logic here. The second parameter data is the data you received from peripherals. You can parse, process and send some other data to peripherals. 
+
+	```
+	@Override
+	public void processData(UUID uuid, byte[] data) {
+
+		//Process data you received from peripherals.
+		byte cmd = data[0];
+        if (cmd == 1){
+            //Notify APP UI, we've reached step1. NotifyInteractUpdate is wrapper of BleDeviceListener.onInteractUpdate.
+            notifyInteractUpdate(mBleDevice,new BleStep("Interact update on step1",data));
+        }else if (cmd == 2){
+            //Notify APP UI, we've reached step2
+            notifyInteractUpdate(mBleDevice,new BleStep("Interact update on step2",data));
+        }else if (cmd == 3){
+            //Notify APP UI, we've reached step3
+            notifyInteractUpdate(mBleDevice,new BleStep("Interact update on step3",data));
+            notifyDataComing(mBleDevice,BleDataType.BLE_DATA_TPYE_CONTINUOUS,data);
+        }else if (cmd == 4){
+            //Notify APP UI, we've finished protocol, and pass data to APP UI through callback method. So APP UI can parse data and update UI
+            notifyInteractComplete(mBleDevice,data);
+        }
+
+	}
+	```
+    #### What we need to do in processData(UUID uuid, byte[] data) method?
+	
+	**Because different peripheral equipment has different protocols, so in every key step of protocols interaction, we need to invoke according BleDeviceListener method manually. As a result the APP UI(Activity) can receive BLE event callback and process received data.**
+    
+    	
+3. 	Register custom device factory to BLECenterManager.
+
+	```
+    bleCenterManager.addDeviceAdapterFactory(BloodPressureFactory.create(bleCenterManager));
+	```
+
+	Wow! Now EasyBle can process and interact with your new peripheral equipment.
+
+	
 
 
 #Contact
@@ -151,3 +258,5 @@ You can reach me by email nziyouren@gmail.com
 
 #License:
 Apache License, Version 2.0
+
+
