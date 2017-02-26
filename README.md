@@ -1,5 +1,6 @@
 # EasyBle
 Multi device process Ble library for Android
+
 中文文档 [README_CN.md](https://github.com/nziyouren/EasyBle/blob/master/README_CN.md)
 
 
