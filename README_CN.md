@@ -426,20 +426,6 @@ private DeviceAdapter findAppropriateDeviceAdapter(BleDevice bleDevice) throws E
 看完Adapter这部分，很多人都会觉得有些熟悉，这个设计跟Retrofit的CallAdapter很类似。对的，好的设计都是相通的，只是换了个形式，都是常用设计模式：适配器，工厂，单例等的组合。
 
 
-## 结束语：
-EasyBle的主要模块就是以上这些了，已经满足了蓝牙开发的基本需求。目前库还处于初级阶段，后续逐步会加一些功能，比如从网络加载adapter，如何在APP不升级版本的情况下，动态扩展集成能力。
-
-库已经开源到Github：[EasyBLE](https://github.com/nziyouren/EasyBle) (https://github.com/nziyouren/EasyBle) ,欢迎大家contribute。
-
-
-### 作者信息
-* 姓名： 章星星 康之元信息技术有限公司就职，担任APP技术负责人 关注领域：Android，JAVA
-* 银行账号： 招商银行 账号6225880285380136
-* 身份证： 320682198710207451
-* Email: nziyouren@gmail.com
-* 电话：13679043608
-
-
 
 
 
