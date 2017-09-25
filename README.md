@@ -5,7 +5,7 @@ Multi device process Ble library for Android
 
 
 # Why I develop this library?
-##Current Ble difficulties
+## Current Ble difficulties
 
 * When app interacts with multiple devices, App UI may tightly coupled with bluetooth interact logic. It's difficult to maintain
 * BLE command must executed one by one. If not, many strange issues may happen such as packet drop, gatt 133
@@ -29,8 +29,8 @@ Architecture of this library
 
 <br /> 
 
-#Download
-##Gradle
+# Download
+## Gradle
 
     compile 'com.happysoftware.easyble:easyble:0.3.3'
 
@@ -254,10 +254,10 @@ public void onScanStop(){
 	
 
 
-#Contact
+# Contact
 You can reach me by email nziyouren@gmail.com
 
-#License:
+# License:
 Apache License, Version 2.0
 
 
